@@ -30,7 +30,7 @@ public record OAuthCredentialSource(
     }
 
     public String buildUrl() {
-        return String.format("https://login.live.com/oauth20_authorize.srf?client_id={}&response_type=code&redirect_uri=%s&scope=XboxLive.signin%20offline_access&state=NOT_NEEDED", clientId, redirectUri());
+        return String.format("https://login.live.com/oauth20_authorize.srf?client_id=%s&response_type=code&redirect_uri=%s&scope=XboxLive.signin%%20offline_access&state=NOT_NEEDED", clientId, redirectUri());
     }
 
     public String redirectUri() {
