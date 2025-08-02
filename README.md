@@ -3,8 +3,14 @@ Microsoft authentication library for PvPCafe Client.
 
 ## example usage
 ### including the library in your project using gradle
-```
-// TODO: Add Gradle dependency instructions here
+```kts
+repositories {
+    maven("https://jitpack.io")
+}
+
+dependencies {
+    implementation("com.github.pvpcafe-client:authlib:1.0")
+}
 ```
 
 ### using the library
