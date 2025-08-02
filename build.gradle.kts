@@ -1,0 +1,17 @@
+plugins {
+    id("java")
+}
+
+group = "cat.psychward.pvpcafe"
+version = "1.0-SNAPSHOT"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // versions yoinked from minecraft fabric 1.21.8
+    implementation("com.google.code.gson:gson:2.11.0")
+    implementation("org.apache.httpcomponents:httpclient:4.5.14")
+    implementation("org.apache.httpcomponents:httpcore:4.4.16")
+}
