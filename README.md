@@ -38,5 +38,4 @@ public void deviceCodeLoginExample() {
 ```
 
 ## License
-Licensed under Mozilla Public License 2.0 ([LICENSE](LICENSE)).  
-See [NOTICE](NOTICE) for details.
+Licensed under Mozilla Public License 2.0 ([LICENSE](LICENSE)).
