@@ -20,7 +20,7 @@ public final class HTTPServerAuthStep extends MicrosoftAuthStep {
 
     private static HttpServer server;
 
-    private final OAuthCredentialSource oauth;
+    private static final OAuthCredentialSource oauth;
 
     public HTTPServerAuthStep(OAuthCredentialSource oauth) {
         this.oauth = oauth;
