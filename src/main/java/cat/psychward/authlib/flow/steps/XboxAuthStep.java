@@ -7,16 +7,11 @@ package cat.psychward.authlib.flow.steps;
 import cat.psychward.authlib.exceptions.AuthenticationException;
 import cat.psychward.authlib.exceptions.BasicAuthenticationException;
 import cat.psychward.authlib.flow.MicrosoftAuthStep;
+import cat.psychward.http.request.HttpRequest;
+import cat.psychward.http.response.impl.JsonResponseBody;
 import cat.psychward.authlib.result.MicrosoftAuthResult;
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.HttpClients;
+import com.google.gson.*;
 
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
 @SuppressWarnings("HttpUrlsUsage")
@@ -88,16 +83,19 @@ public final class XboxAuthStep extends MicrosoftAuthStep {
     }
 
     private JsonObject postJson(String url, JsonObject body) throws Exception {
-        try (final var client = HttpClients.createDefault()) {
-            HttpPost post = new HttpPost(url);
-            post.setHeader("Content-Type", "application/json");
-            post.setHeader("Accept", "application/json");
-            post.setEntity(new StringEntity(GSON.toJson(body), StandardCharsets.UTF_8));
+        try (final HttpRequest request = HttpRequest.builder()
+                .url(url)
+                .setHeader("Content-Type", "application/json")
+                .setHeader("Accept", "application/json")
+                .method("POST")
+                .body(GSON.toJson(body).getBytes(StandardCharsets.UTF_8))
+                .build()) {
 
-            try (var response = client.execute(post)) {
-                var json = JsonParser.parseReader(new InputStreamReader(response.getEntity().getContent(), StandardCharsets.UTF_8));
-                return json.isJsonObject() ? json.getAsJsonObject() : new JsonObject();
-            }
+            JsonElement json = request.execute()
+                    .as(JsonResponseBody.class)
+                    .getJson();
+
+            return json.isJsonObject() ? json.getAsJsonObject() : new JsonObject();
         }
     }
 }

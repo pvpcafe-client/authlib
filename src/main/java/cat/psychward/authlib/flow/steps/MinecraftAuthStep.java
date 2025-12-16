@@ -7,15 +7,14 @@ package cat.psychward.authlib.flow.steps;
 import cat.psychward.authlib.exceptions.AuthenticationException;
 import cat.psychward.authlib.exceptions.BasicAuthenticationException;
 import cat.psychward.authlib.flow.MicrosoftAuthStep;
+import cat.psychward.http.request.HttpRequest;
+import cat.psychward.http.response.HttpResponse;
+import cat.psychward.http.response.impl.JsonResponseBody;
 import cat.psychward.authlib.result.MicrosoftAuthResult;
 import cat.psychward.authlib.result.MinecraftSessionAuthResult;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClients;
 
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 public final class MinecraftAuthStep extends MicrosoftAuthStep {
@@ -28,29 +27,31 @@ public final class MinecraftAuthStep extends MicrosoftAuthStep {
 
     @Override
     public MicrosoftAuthResult login() throws AuthenticationException {
-        try (final var client = HttpClients.createDefault()) {
-            HttpGet get = new HttpGet("https://api.minecraftservices.com/minecraft/profile");
-            get.setHeader("Authorization", "Bearer " + accessToken);
-            get.setHeader("Accept", "application/json");
+        try (final HttpRequest request = HttpRequest.builder()
+                .url("https://api.minecraftservices.com/minecraft/profile")
+                .setHeader("Authorization", "Bearer " + accessToken)
+                .setHeader("Accept", "application/json")
+                .method("GET")
+                .build()) {
 
-            try (var response = client.execute(get)) {
-                if (response.getStatusLine().getStatusCode() != 200)
-                    throw new BasicAuthenticationException("Failed to get Minecraft profile: HTTP " + response.getStatusLine().getStatusCode());
+            final HttpResponse response = request.execute();
 
-                var json = JsonParser.parseReader(new InputStreamReader(response.getEntity().getContent(), StandardCharsets.UTF_8));
-                if (!json.isJsonObject())
-                    throw new BasicAuthenticationException("Invalid response from Minecraft profile endpoint.");
+            if (response.statusCode() != 200)
+                throw new BasicAuthenticationException("Failed to get Minecraft profile: HTTP " + response.statusCode() + ", " + response.message());
 
-                final JsonObject profile = json.getAsJsonObject();
-                if (profile.has("name") && profile.has("id")) {
-                    String username = profile.get("name").getAsString();
-                    UUID uuid = UUID.fromString(insertDashes(profile.get("id").getAsString()));
+            JsonElement json = response.as(JsonResponseBody.class).getJson();
+            if (!json.isJsonObject())
+                throw new BasicAuthenticationException("Invalid response from Minecraft profile endpoint.");
 
-                    return new MinecraftSessionAuthResult(username, uuid, accessToken);
-                }
+            final JsonObject profile = json.getAsJsonObject();
+            if (profile.has("name") && profile.has("id")) {
+                String username = profile.get("name").getAsString();
+                UUID uuid = UUID.fromString(insertDashes(profile.get("id").getAsString()));
 
-                throw new BasicAuthenticationException("Profile response missing required fields: " + profile);
+                return new MinecraftSessionAuthResult(username, uuid, accessToken);
             }
+
+            throw new BasicAuthenticationException("Profile response missing required fields: " + profile);
         } catch (Exception e) {
             throw new BasicAuthenticationException("Failed to fetch Minecraft profile", e);
         }

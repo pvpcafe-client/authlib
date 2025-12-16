@@ -14,18 +14,25 @@ import java.util.concurrent.Executors;
 
 public abstract class MicrosoftAuthStep {
 
-    private static final Executor SERVICE = Executors.newVirtualThreadPerTaskExecutor();
+    private static Executor executor;
+
+    public static void setExecutor(Executor executor) {
+        MicrosoftAuthStep.executor = executor;
+    }
 
     public abstract MicrosoftAuthResult login() throws AuthenticationException;
 
     public CompletableFuture<MicrosoftAuthResult> loginAsync() {
+        if (executor == null)
+            executor = Executors.newSingleThreadExecutor();
+
         return CompletableFuture.supplyAsync(() -> {
             try {
                 return login();
             } catch (AuthenticationException e) {
                 throw new CompletionException(e.getMessage(), e);
             }
-        }, SERVICE);
+        }, executor);
     }
 
 }

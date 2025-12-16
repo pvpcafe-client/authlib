@@ -8,7 +8,38 @@ import cat.psychward.authlib.application.CredentialSource;
 import cat.psychward.authlib.flow.MicrosoftAuthStep;
 import cat.psychward.authlib.flow.steps.MinecraftAuthStep;
 
-public record AccessTokenCredentialSource(String accessToken) implements CredentialSource {
+import java.util.Objects;
+
+public final class AccessTokenCredentialSource implements CredentialSource {
+    private final String accessToken;
+
+    public AccessTokenCredentialSource(String accessToken) {
+        this.accessToken = accessToken;
+    }
+
+    public String accessToken() {
+        return accessToken;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == this) return true;
+        if (obj == null || obj.getClass() != this.getClass()) return false;
+        AccessTokenCredentialSource that = (AccessTokenCredentialSource) obj;
+        return Objects.equals(this.accessToken, that.accessToken);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(accessToken);
+    }
+
+    @Override
+    public String toString() {
+        return "AccessTokenCredentialSource{" +
+                "accessToken='" + accessToken + '\'' +
+                '}';
+    }
 
     @Override
     public MicrosoftAuthStep initiate() {

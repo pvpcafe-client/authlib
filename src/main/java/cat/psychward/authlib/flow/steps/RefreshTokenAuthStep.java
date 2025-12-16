@@ -8,16 +8,14 @@ import cat.psychward.authlib.application.impl.OAuthCredentialSource;
 import cat.psychward.authlib.exceptions.AuthenticationException;
 import cat.psychward.authlib.exceptions.BasicAuthenticationException;
 import cat.psychward.authlib.flow.MicrosoftAuthStep;
+import cat.psychward.http.request.HttpRequest;
+import cat.psychward.http.request.impl.FormRequestBody;
+import cat.psychward.http.response.impl.JsonResponseBody;
 import cat.psychward.authlib.result.MicrosoftAuthResult;
 import cat.psychward.authlib.result.RefreshTokenResult;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.message.BasicNameValuePair;
 
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,31 +32,30 @@ public final class RefreshTokenAuthStep extends MicrosoftAuthStep {
     @Override
     public MicrosoftAuthResult login() throws AuthenticationException {
         try {
-            try (final var client = HttpClients.createDefault()) {
-                HttpPost post = new HttpPost("https://login.live.com/oauth20_token.srf");
 
-                List<BasicNameValuePair> params = new ArrayList<>();
-                params.add(new BasicNameValuePair("client_id", oauth.clientId()));
-                oauth.clientSecret().ifPresent(secret -> params.add(new BasicNameValuePair("client_secret", secret)));
-                params.add(new BasicNameValuePair("refresh_token", refreshToken));
-                params.add(new BasicNameValuePair("grant_type", "refresh_token"));
-                params.add(new BasicNameValuePair("redirect_uri", oauth.redirectUri()));
+            final List<FormRequestBody.Parameter> parameters = new ArrayList<>();
+            parameters.add(new FormRequestBody.Parameter("client_id", oauth.clientId()));
+            oauth.clientSecret().ifPresent(secret -> parameters.add(new FormRequestBody.Parameter("client_secret", secret)));
+            parameters.add(new FormRequestBody.Parameter("refresh_token", refreshToken));
+            parameters.add(new FormRequestBody.Parameter("grant_type", "refresh_token"));
+            parameters.add(new FormRequestBody.Parameter("redirect_uri", oauth.redirectUri()));
 
-                post.setEntity(new UrlEncodedFormEntity(params));
-                post.setHeader("Content-Type", "application/x-www-form-urlencoded");
+            try (HttpRequest request = HttpRequest.builder("https://login.live.com/oauth20_token.srf")
+                    .method("POST")
+                    .setHeader("Content-Type", "application/x-www-form-urlencoded")
+                    .body(new FormRequestBody(parameters))
+                    .build()) {
+                JsonElement json = request.execute().as(JsonResponseBody.class).getJson();
 
-                try (final var response = client.execute(post)) {
-                    final var json = JsonParser.parseReader(new InputStreamReader(response.getEntity().getContent()));
-                    if (json.isJsonObject()) {
-                        final JsonObject object = json.getAsJsonObject();
-                        if (object.has("access_token") && object.has("refresh_token")) {
-                            final String accessToken = object.get("access_token").getAsString();
-                            final String refreshToken = object.get("refresh_token").getAsString();
-                            return new RefreshTokenResult(
-                                    refreshToken,
-                                    new XboxAuthStep(accessToken).login()
-                            );
-                        }
+                if (json.isJsonObject()) {
+                    final JsonObject object = json.getAsJsonObject();
+                    if (object.has("access_token") && object.has("refresh_token")) {
+                        final String accessToken = object.get("access_token").getAsString();
+                        final String refreshToken = object.get("refresh_token").getAsString();
+                        return new RefreshTokenResult(
+                                refreshToken,
+                                new XboxAuthStep(accessToken).login()
+                        );
                     }
                 }
 
