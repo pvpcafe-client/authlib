@@ -1,4 +1,4 @@
-package cat.psychward.http.response.impl;
+package http.response.impl;
 
 import cat.psychward.http.response.ResponseBody;
 import com.google.gson.JsonElement;
