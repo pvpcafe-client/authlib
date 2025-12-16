@@ -9,7 +9,7 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.pvpcafe-client:authlib:1.1")
+    implementation("com.github.pvpcafe-client:authlib:1.2")
 }
 ```
 
