@@ -9,18 +9,18 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.pvpcafe-client:authlib:1.1")
+    implementation("com.github.pvpcafe-client:authlib:2.0.0")
 }
 ```
 
 ### using the library
 ```java
-// also supports refresh token login or oauth2 azure application login (public, private)
+// also supports refresh token login or oauth2 azure application login (public, private; also official client ids as of version 2.0.0)
 public void deviceCodeLoginExample() {
     final CredentialSource source = new DeviceCodeCredentialSource(
-            "CLIENT_ID_HERE",
-            (uri, code) -> System.out.println("Verify with code " + code + " at " + uri)
+            "CLIENT_ID_HERE"
     );
+    source.onCodeReceived((uri, code) -> System.out.println("Verify with code " + code + " at " + uri));
 
     // asynchronous login
     source.initiate().loginAsync().thenAcceptAsync((MicrosoftAuthResult result) -> {

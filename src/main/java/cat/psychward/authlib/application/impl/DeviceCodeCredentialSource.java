@@ -4,24 +4,47 @@
  */
 package cat.psychward.authlib.application.impl;
 
-import cat.psychward.authlib.application.CredentialSource;
+import cat.psychward.authlib.application.api.ClientCredentialSource;
 import cat.psychward.authlib.flow.MicrosoftAuthStep;
 import cat.psychward.authlib.flow.steps.oauth2.DeviceCodeAuthStep;
+import cat.psychward.http.request.impl.FormRequestBody;
+import com.google.gson.annotations.SerializedName;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 
-public final class DeviceCodeCredentialSource implements CredentialSource {
-    private final String clientId;
-    private final BiConsumer<String, String> deviceCodeConsumer;
+public final class DeviceCodeCredentialSource implements ClientCredentialSource {
 
-    public DeviceCodeCredentialSource(String clientId, BiConsumer<String, String> deviceCodeConsumer) {
+    @SerializedName("clientId")
+    private final String clientId;
+
+    private transient BiConsumer<String, String> deviceCodeConsumer;
+
+    public DeviceCodeCredentialSource(String clientId) {
         this.clientId = clientId;
-        this.deviceCodeConsumer = deviceCodeConsumer;
+    }
+
+    public DeviceCodeCredentialSource onCodeReceived(BiConsumer<String, String> deviceCodeConsumer) {
+        if (this.deviceCodeConsumer == null)
+            this.deviceCodeConsumer = deviceCodeConsumer;
+
+        return this;
     }
 
     public String clientId() {
         return clientId;
+    }
+
+    @Override
+    public Optional<String> clientSecret() {
+        return Optional.empty();
+    }
+
+    @Override
+    public void appendParameters(List<FormRequestBody.Parameter> parameters) {
+        parameters.add(new FormRequestBody.Parameter("client_id", clientId));
     }
 
     public BiConsumer<String, String> deviceCodeConsumer() {
@@ -52,6 +75,9 @@ public final class DeviceCodeCredentialSource implements CredentialSource {
 
     @Override
     public MicrosoftAuthStep initiate() {
+        if (deviceCodeConsumer == null)
+            throw new IllegalStateException("deviceCodeConsumer cannot be null");
+
         return new DeviceCodeAuthStep(this);
     }
 }

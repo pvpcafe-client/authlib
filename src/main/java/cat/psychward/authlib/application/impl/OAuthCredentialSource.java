@@ -4,34 +4,84 @@
  */
 package cat.psychward.authlib.application.impl;
 
-import cat.psychward.authlib.application.CredentialSource;
+import cat.psychward.authlib.application.api.ClientCredentialSource;
 import cat.psychward.authlib.flow.MicrosoftAuthStep;
 import cat.psychward.authlib.flow.steps.oauth2.HTTPServerAuthStep;
+import cat.psychward.http.request.impl.FormRequestBody;
+import com.google.gson.annotations.SerializedName;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-public final class OAuthCredentialSource implements CredentialSource {
-    private final int port;
+public final class OAuthCredentialSource implements ClientCredentialSource {
+
+    private static final Pattern PATTERN = Pattern.compile(".*:([0-9]{1,5}).*");
+    private static final int PORT_LIMIT = 65535;
+
+    private final transient Integer port;
+
+    @SerializedName("redirectUri")
+    private final String redirectUri;
+
+    @SerializedName("clientId")
     private final String clientId;
-    private final Optional<String> clientSecret;
+
+    @Nullable
+    @SerializedName("clientSecret")
+    private final String clientSecret;
+
+    @Nullable
+    @SerializedName("scope")
+    private final String scope;
 
     public OAuthCredentialSource(
-            int port,
+            String redirectUri,
             String clientId,
-            Optional<String> clientSecret
+            @Nullable String clientSecret,
+            @Nullable String scope
     ) {
-        this.port = port;
+        this.redirectUri = redirectUri;
+        this.port = this.extractPort(redirectUri);
         this.clientId = clientId;
         this.clientSecret = clientSecret;
+        this.scope = scope;
     }
 
-    public OAuthCredentialSource(int port, String clientId) {
-        this(port, clientId, Optional.empty());
+    public OAuthCredentialSource(
+            String redirectUri,
+            String clientId,
+            @Nullable String clientSecret
+    ) {
+        this(redirectUri, clientId, clientSecret, null);
     }
 
     public OAuthCredentialSource(int port, String clientId, String clientSecret) {
-        this(port, clientId, Optional.of(clientSecret));
+        this("http://localhost:" + port, clientId, clientSecret, null);
+    }
+
+    public OAuthCredentialSource(String redirectUri, String clientId) {
+        this(redirectUri, clientId, null);
+    }
+
+    public OAuthCredentialSource(int port, String clientId) {
+        this(port, clientId, null);
+    }
+
+    private Integer extractPort(String redirectUri) {
+        final Matcher matcher = PATTERN.matcher(redirectUri);
+        if (matcher.find()) {
+            int value = Integer.parseInt(matcher.group(1));
+            if (value < 0 || value > PORT_LIMIT)
+                throw new IllegalArgumentException("Invalid port: " + value + " (out of valid port range)");
+
+            return value;
+        } else {
+            return -1;
+        }
     }
 
     public int port() {
@@ -43,35 +93,51 @@ public final class OAuthCredentialSource implements CredentialSource {
     }
 
     public Optional<String> clientSecret() {
-        return clientSecret;
+        return Optional.ofNullable(clientSecret);
+    }
+
+    public Optional<String> scope() {
+        return Optional.ofNullable(scope);
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj == this) return true;
-        if (obj == null || obj.getClass() != this.getClass()) return false;
-        OAuthCredentialSource that = (OAuthCredentialSource) obj;
-        return this.port == that.port &&
-                Objects.equals(this.clientId, that.clientId) &&
-                Objects.equals(this.clientSecret, that.clientSecret);
+    public void appendParameters(List<FormRequestBody.Parameter> parameters) {
+        parameters.add(new FormRequestBody.Parameter("client_id", clientId));
+        clientSecret().ifPresent(secret -> parameters.add(new FormRequestBody.Parameter("client_secret", secret)));
+        scope().ifPresent(scope -> parameters.add(new FormRequestBody.Parameter("scope", scope)));
+        parameters.add(new FormRequestBody.Parameter("redirect_uri", redirectUri));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        OAuthCredentialSource that = (OAuthCredentialSource) o;
+        return Objects.equals(port, that.port) &&
+                Objects.equals(redirectUri, that.redirectUri) &&
+                Objects.equals(clientId, that.clientId) &&
+                Objects.equals(clientSecret, that.clientSecret);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(port, clientId, clientSecret);
+        return Objects.hash(port, redirectUri, clientId, clientSecret);
     }
 
     @Override
     public String toString() {
         return "OAuthCredentialSource{" +
                 "port=" + port +
+                ", redirectUri='" + redirectUri + '\'' +
                 ", clientId='" + clientId + '\'' +
-                ", clientSecret=" + clientSecret +
+                ", clientSecret='" + clientSecret + '\'' +
                 '}';
     }
 
     @Override
     public MicrosoftAuthStep initiate() {
+        if (this.port == null || this.port < 0)
+            throw new IllegalStateException("invalid port");
+
         return new HTTPServerAuthStep(this);
     }
 
@@ -80,6 +146,6 @@ public final class OAuthCredentialSource implements CredentialSource {
     }
 
     public String redirectUri() {
-        return "http://localhost:" + port();
+        return redirectUri;
     }
 }

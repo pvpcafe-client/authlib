@@ -4,13 +4,16 @@
  */
 package cat.psychward.authlib.application.impl;
 
-import cat.psychward.authlib.application.CredentialSource;
+import cat.psychward.authlib.application.api.CredentialSource;
 import cat.psychward.authlib.flow.MicrosoftAuthStep;
 import cat.psychward.authlib.flow.steps.MinecraftAuthStep;
+import com.google.gson.annotations.SerializedName;
 
 import java.util.Objects;
 
 public final class AccessTokenCredentialSource implements CredentialSource {
+
+    @SerializedName("accessToken")
     private final String accessToken;
 
     public AccessTokenCredentialSource(String accessToken) {

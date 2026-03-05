@@ -23,16 +23,16 @@ import java.util.concurrent.TimeUnit;
 
 public final class DeviceCodeAuthStep extends MicrosoftAuthStep {
 
-    private final DeviceCodeCredentialSource code;
+    private final DeviceCodeCredentialSource source;
 
     public DeviceCodeAuthStep(DeviceCodeCredentialSource code) {
-        this.code = code;
+        this.source = code;
     }
 
     @Override
     public MicrosoftAuthResult login() throws AuthenticationException {
         final List<FormRequestBody.Parameter> parameters = new ArrayList<>();
-        parameters.add(new FormRequestBody.Parameter("client_id", code.clientId()));
+        parameters.add(new FormRequestBody.Parameter("client_id", source.clientId()));
         parameters.add(new FormRequestBody.Parameter("scope", "XboxLive.signin offline_access"));
 
         try (HttpRequest request = HttpRequest.builder("https://login.microsoftonline.com/consumers/oauth2/v2.0/devicecode")
@@ -56,7 +56,7 @@ public final class DeviceCodeAuthStep extends MicrosoftAuthStep {
             int interval = deviceCodeObject.get("interval").getAsInt(),
                     expiresIn = deviceCodeObject.get("expires_in").getAsInt();
 
-            code.deviceCodeConsumer().accept(
+            source.deviceCodeConsumer().accept(
                     deviceCodeObject.get("verification_uri").getAsString(),
                     userCode
             );
@@ -68,7 +68,7 @@ public final class DeviceCodeAuthStep extends MicrosoftAuthStep {
 
                 parameters.clear();
                 parameters.add(new FormRequestBody.Parameter("grant_type", "device_code"));
-                parameters.add(new FormRequestBody.Parameter("client_id", code.clientId()));
+                parameters.add(new FormRequestBody.Parameter("client_id", source.clientId()));
                 parameters.add(new FormRequestBody.Parameter("device_code", deviceCode));
 
                 try (HttpRequest pollRequest = HttpRequest.builder("https://login.microsoftonline.com/consumers/oauth2/v2.0/token")
@@ -85,7 +85,7 @@ public final class DeviceCodeAuthStep extends MicrosoftAuthStep {
                     if (pollJson.has("access_token")) {
                         return new RefreshTokenResult(
                                 pollJson.get("refresh_token").getAsString(),
-                                new XboxAuthStep(pollJson.get("access_token").getAsString()).login()
+                                new XboxAuthStep(source.clientId(), pollJson.get("access_token").getAsString()).login()
                         );
                     }
 

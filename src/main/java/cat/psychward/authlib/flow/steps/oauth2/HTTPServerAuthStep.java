@@ -5,7 +5,7 @@
 package cat.psychward.authlib.flow.steps.oauth2;
 
 import cat.psychward.authlib.exceptions.AuthenticationException;
-import cat.psychward.authlib.flow.steps.AccessTokenAuthStep;
+import cat.psychward.authlib.flow.steps.TokenAuthStep;
 import cat.psychward.authlib.result.MicrosoftAuthResult;
 import cat.psychward.authlib.application.impl.OAuthCredentialSource;
 import cat.psychward.authlib.exceptions.BasicAuthenticationException;
@@ -15,9 +15,12 @@ import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class HTTPServerAuthStep extends MicrosoftAuthStep {
 
+    private static final Pattern CODE_PATTERN = Pattern.compile("code=([^&]*)");
     private static HttpServer server;
 
     private final OAuthCredentialSource oauth;
@@ -44,12 +47,17 @@ public final class HTTPServerAuthStep extends MicrosoftAuthStep {
             try {
                 exchange.sendResponseHeaders(200, "You can close this window now.".length());
                 exchange.getResponseBody().write("You can close this window now.".getBytes());
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
             exchange.close();
             if (server != null) server.stop(0);
 
             try {
-                future.complete(new AccessTokenAuthStep(oauth, exchange.getRequestURI().getQuery().split("code=")[1].split("&")[0]).login());
+                Matcher result = CODE_PATTERN.matcher(exchange.getRequestURI().getQuery());
+                if (!result.find() || result.groupCount() < 1)
+                    throw new BasicAuthenticationException("Failed to find code in URI.");
+
+                future.complete(new TokenAuthStep(oauth, result.group(1), TokenAuthStep.Type.ACCESS_TOKEN).login());
             } catch (final Exception exception) {
                 future.completeExceptionally(exception);
             }

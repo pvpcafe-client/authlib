@@ -4,25 +4,26 @@
  */
 package cat.psychward.authlib.application.impl;
 
-import cat.psychward.authlib.application.CredentialSource;
+import cat.psychward.authlib.application.api.ClientCredentialSource;
+import cat.psychward.authlib.application.api.CredentialSource;
 import cat.psychward.authlib.flow.MicrosoftAuthStep;
-import cat.psychward.authlib.flow.steps.RefreshTokenAuthStep;
+import cat.psychward.authlib.flow.steps.TokenAuthStep;
 
 import java.util.Objects;
 
 public final class RefreshTokenCredentialSource implements CredentialSource {
-    private final OAuthCredentialSource owner;
+    private final ClientCredentialSource owner;
     private final String refreshToken;
 
     public RefreshTokenCredentialSource(
-            OAuthCredentialSource owner,
+            ClientCredentialSource owner,
             String refreshToken
     ) {
         this.owner = owner;
         this.refreshToken = refreshToken;
     }
 
-    public OAuthCredentialSource owner() {
+    public ClientCredentialSource owner() {
         return owner;
     }
 
@@ -54,7 +55,7 @@ public final class RefreshTokenCredentialSource implements CredentialSource {
 
     @Override
     public MicrosoftAuthStep initiate() {
-        return new RefreshTokenAuthStep(owner, refreshToken);
+        return new TokenAuthStep(owner, refreshToken, TokenAuthStep.Type.REFRESH_TOKEN);
     }
 
 }

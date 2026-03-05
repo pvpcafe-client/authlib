@@ -17,11 +17,14 @@ import java.nio.charset.StandardCharsets;
 @SuppressWarnings("HttpUrlsUsage")
 public final class XboxAuthStep extends MicrosoftAuthStep {
 
-    private final String accessToken;
     private static final Gson GSON = new Gson();
 
-    public XboxAuthStep(String accessToken) {
+    private final String accessToken;
+    private final boolean official;
+
+    public XboxAuthStep(String clientId, String accessToken) {
         this.accessToken = accessToken;
+        this.official = !clientId.contains("-");
     }
 
     @Override
@@ -42,7 +45,7 @@ public final class XboxAuthStep extends MicrosoftAuthStep {
         JsonObject properties = new JsonObject();
         properties.addProperty("AuthMethod", "RPS");
         properties.addProperty("SiteName", "user.auth.xboxlive.com");
-        properties.addProperty("RpsTicket", "d=" + accessToken);
+        properties.addProperty("RpsTicket", (official ? "" : "d=") + accessToken);
 
         JsonObject body = new JsonObject();
         body.add("Properties", properties);
