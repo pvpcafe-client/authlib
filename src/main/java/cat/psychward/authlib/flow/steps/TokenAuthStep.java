@@ -40,7 +40,7 @@ public final class TokenAuthStep extends MicrosoftAuthStep {
             source.appendParameters(parameters);
             type.consumer.accept(token, parameters);
 
-            try (HttpRequest request = HttpRequest.builder("https://login.live.com/oauth20_token.srf")
+            try (HttpRequest request = HttpRequest.builder("https://login.microsoftonline.com/consumers/oauth2/v2.0/token")
                     .method("POST")
                     .setHeader("Content-Type", "application/x-www-form-urlencoded")
                     .body(new FormRequestBody(parameters))

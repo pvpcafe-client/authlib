@@ -22,7 +22,9 @@ public final class OAuthCredentialSource implements ClientCredentialSource {
     private static final Pattern PATTERN = Pattern.compile(".*:([0-9]{1,5}).*");
     private static final int PORT_LIMIT = 65535;
 
-    private final transient Integer port;
+    @Nullable
+    @SerializedName("port")
+    private final Integer port;
 
     @SerializedName("redirectUri")
     private final String redirectUri;
@@ -71,7 +73,7 @@ public final class OAuthCredentialSource implements ClientCredentialSource {
         this(port, clientId, null);
     }
 
-    private Integer extractPort(String redirectUri) {
+    private @Nullable Integer extractPort(String redirectUri) {
         final Matcher matcher = PATTERN.matcher(redirectUri);
         if (matcher.find()) {
             int value = Integer.parseInt(matcher.group(1));
@@ -80,12 +82,13 @@ public final class OAuthCredentialSource implements ClientCredentialSource {
 
             return value;
         } else {
-            return -1;
+            return null;
         }
     }
 
     public int port() {
-        return port;
+        final Integer port = this.port;
+        return port == null ? -1 : port;
     }
 
     public String clientId() {
@@ -135,14 +138,14 @@ public final class OAuthCredentialSource implements ClientCredentialSource {
 
     @Override
     public MicrosoftAuthStep initiate() {
-        if (this.port == null || this.port < 0)
+        if (this.port == null || this.port < 0 || this.port > PORT_LIMIT)
             throw new IllegalStateException("invalid port");
 
         return new HTTPServerAuthStep(this);
     }
 
     public String buildUrl() {
-        return String.format("https://login.live.com/oauth20_authorize.srf?client_id=%s&response_type=code&redirect_uri=%s&scope=XboxLive.signin%%20offline_access&state=NOT_NEEDED", clientId, redirectUri());
+        return String.format("https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize?client_id=%s&response_type=code&redirect_uri=%s&scope=XboxLive.signin%%20XboxLive.offline_access&state=NOT_NEEDED", clientId, redirectUri());
     }
 
     public String redirectUri() {
