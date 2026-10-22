@@ -15,7 +15,7 @@ dependencies {
     // version yoinked from minecraft fabric 1.21.8
     implementation("com.google.code.gson:gson:2.11.0")
     compileOnly("org.jetbrains:annotations:26.1.0")
-    api("com.github.pvpcafe-client:httplib:1.0.0")
+    api("com.github.pvpcafe-client:httplib:1.0.4")
 }
 
 tasks.withType<JavaCompile>().configureEach {
