@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "cat.psychward.pvpcafe"
-version = "2.0.0"
+version = "2.0.2"
 
 repositories {
     maven("https://jitpack.io")
